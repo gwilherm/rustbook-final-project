@@ -4,19 +4,39 @@ use std::net::TcpStream;
 use std::fs;
 use std::thread;
 use std::time::Duration;
-use hello::ThreadPool;
+use signal_hook::{consts::SIGINT, consts::SIGTERM, iterator::Signals};
+use std::error::Error;
+use hello::threadpool::ThreadPool;
+use hello::cancellableincoming::{EventFd, CancellableIncoming};
 
-fn main() {
+use std::sync::Arc;
+
+fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    let pool = ThreadPool::new(4);
+    let pool = ThreadPool::new(4); 
+    
+    let shutdown = Arc::new(EventFd::new());
+    let incoming = CancellableIncoming::new(&listener, &shutdown);
+    let shutdown = shutdown.clone();
 
-    for stream in listener.incoming() {
+    let mut signals = Signals::new(&[SIGINT, SIGTERM])?;
+    thread::spawn(move || {
+        for sig in signals.forever() {
+            println!("Received signal {:?}", sig);
+            shutdown.add(1).ok();
+        }
+    });
+
+    for stream in incoming {
+        println!("..");
         let stream = stream.unwrap();
 
         pool.execute(|| {
             handle_connection(stream);
         });
     }
+
+    Ok(())
 }
 
 fn handle_connection(mut stream: TcpStream) {
