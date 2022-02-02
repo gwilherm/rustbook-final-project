@@ -1,36 +1,29 @@
 use std::io::prelude::*;
-use std::net::TcpListener;
-use std::net::TcpStream;
+// use std::net::TcpListener;
+// use std::net::TcpStream;
 use std::fs;
 use std::thread;
 use std::time::Duration;
 use signal_hook::{consts::SIGINT, consts::SIGTERM, iterator::Signals};
 use std::error::Error;
 use hello::threadpool::ThreadPool;
-use hello::cancellableincoming::{EventFd, CancellableIncoming};
 
-use std::sync::Arc;
+use cancellable_io::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let (listener, canceller) = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4); 
     
-    let shutdown = Arc::new(EventFd::new());
-    let incoming = CancellableIncoming::new(&listener, &shutdown);
-    let shutdown = shutdown.clone();
-
     let mut signals = Signals::new(&[SIGINT, SIGTERM])?;
     thread::spawn(move || {
         for sig in signals.forever() {
             println!("Received signal {:?}", sig);
-            shutdown.add(1).ok();
+            canceller.cancel().unwrap();
         }
     });
 
-    for stream in incoming {
-        println!("..");
-        let stream = stream.unwrap();
-
+    for stream in listener.incoming() {
+        let (stream,..) = stream?;
         pool.execute(|| {
             handle_connection(stream);
         });
