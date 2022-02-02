@@ -98,3 +98,49 @@ impl Worker {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    use std::time::Instant;
+
+    #[test]
+    fn mytest() {
+        const THREAD_COUNT: usize = 10;
+        const TASK_DURATION_SEC: u64 = 2;
+
+        let pool = ThreadPool::new(THREAD_COUNT);
+        let start = Instant::now();
+
+        // Keep all workers busy for TASK_DURATION_SEC seconds
+        for i in 0..THREAD_COUNT {
+            let (tx, rx) = mpsc::channel();
+
+            pool.execute(move || {
+                println!("Working...");
+                tx.send(i*i).unwrap();
+                thread::sleep(Duration::from_secs(TASK_DURATION_SEC));
+                println!("Finished!");
+            });
+
+            // Check the result
+            let result = rx.recv().unwrap();
+            println!("{}² = {}", i, result);
+            assert_eq!(result, i*i);
+        }
+
+        // Give one more task to the pool.
+        let (tx, rx) = mpsc::channel();
+        pool.execute(move || {
+            println!("Waiting to be executed...");
+            tx.send(Instant::now()).unwrap();
+        });
+        let end = rx.recv().unwrap();
+        println!("Took {} sec.", (end-start).as_secs());
+        assert_eq!((end-start).as_secs(), TASK_DURATION_SEC);
+    }
+}
