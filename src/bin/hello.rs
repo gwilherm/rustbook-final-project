@@ -1,19 +1,16 @@
 use std::io::prelude::*;
-// use std::net::TcpListener;
-// use std::net::TcpStream;
 use std::fs;
 use std::thread;
 use std::time::Duration;
+#[cfg(unix)]
 use signal_hook::{consts::SIGINT, consts::SIGTERM, iterator::Signals};
 use std::error::Error;
 use hello::threadpool::ThreadPool;
 
 use cancellable_io::*;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let (listener, canceller) = TcpListener::bind("127.0.0.1:7878").unwrap();
-    let pool = ThreadPool::new(4); 
-    
+#[cfg(unix)]
+fn signal_handler_thread(canceller: Canceller) -> Result<(), Box<dyn Error>> {
     let mut signals = Signals::new(&[SIGINT, SIGTERM])?;
     thread::spawn(move || {
         for sig in signals.forever() {
@@ -22,6 +19,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let (listener, _canceller) = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4); 
+
+    #[cfg(unix)]
+    signal_handler_thread(_canceller)?;
+    
     for stream in listener.incoming() {
         let (stream,..) = stream?;
         pool.execute(|| {
