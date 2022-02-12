@@ -1,28 +1,35 @@
+// STD
 use std::io::prelude::*;
 use std::fs;
 use std::thread;
 use std::time::Duration;
+use std::error::Error;
+
+// Crates
+use cancellable_io::*;
 #[cfg(unix)]
 use signal_hook::{consts::SIGINT, consts::SIGTERM, iterator::Signals};
-use std::error::Error;
-use hello::threadpool::ThreadPool;
+#[cfg(unix)]
+use log::info;
 
-use cancellable_io::*;
+// Internal
+use hello::threadpool::ThreadPool;
 
 #[cfg(unix)]
 fn signal_handler_thread(canceller: Canceller) -> Result<(), Box<dyn Error>> {
     let mut signals = Signals::new(&[SIGINT, SIGTERM])?;
     thread::spawn(move || {
         for sig in signals.forever() {
-            println!("Received signal {:?}", sig);
+            info!("Received signal {:?}", sig);
             canceller.cancel().unwrap();
         }
     });
-
+    
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
     let (listener, _canceller) = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4); 
 
