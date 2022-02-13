@@ -14,6 +14,7 @@ use log::info;
 
 // Internal
 use hello::threadpool::ThreadPool;
+use hello::config::Config;
 
 #[cfg(unix)]
 fn signal_handler_thread(canceller: Canceller) -> Result<(), Box<dyn Error>> {
@@ -30,7 +31,10 @@ fn signal_handler_thread(canceller: Canceller) -> Result<(), Box<dyn Error>> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    let (listener, _canceller) = TcpListener::bind("127.0.0.1:7878").unwrap();
+
+    let config = Config::load("config.toml");
+    
+    let (listener, _canceller) = TcpListener::bind(config.to_string()).unwrap();
     let pool = ThreadPool::new(4); 
 
     #[cfg(unix)]
