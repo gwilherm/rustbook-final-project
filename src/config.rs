@@ -2,7 +2,7 @@ use std::fs;
 use std::fmt;
 
 use serde_derive::Deserialize;
-use log::info;
+use log::{info, error};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -12,10 +12,13 @@ pub struct Config {
 
 impl Config {
     pub fn load(config_file: &str) -> Config {
-        let contents = fs::read_to_string(config_file)
-            .expect("Something went wrong reading the file");
 
-        let config: Config = toml::from_str(contents.as_str()).unwrap();
+        let contents = fs::read_to_string(config_file)
+        .map_err(|e| error!("{} reading failed with: {}", config_file, e)).unwrap();
+
+        let config: Config = toml::from_str(contents.as_str())
+        .map_err(|e| error!("{} parsing failed with: {}", config_file, e)).unwrap();
+
         info!("Config file successfully read: {}" , config);
 
         config
