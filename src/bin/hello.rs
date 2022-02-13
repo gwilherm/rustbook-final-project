@@ -34,8 +34,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let config = Config::load("config.toml");
     
-    let (listener, _canceller) = TcpListener::bind(config.to_string()).unwrap();
-    let pool = ThreadPool::new(4); 
+    let (listener, _canceller) = TcpListener::bind(config.server.to_string()).unwrap();
+    let pool = ThreadPool::new(config.threadpool.workers); 
 
     #[cfg(unix)]
     signal_handler_thread(_canceller)?;

@@ -6,8 +6,19 @@ use log::{info, error};
 
 #[derive(Deserialize)]
 pub struct Config {
+    pub server: ServerConfig,
+    pub threadpool: ThreadPoolConfig,
+}
+
+#[derive(Deserialize)]
+pub struct ServerConfig {
     ip: String,
     port: u16,
+}
+
+#[derive(Deserialize)]
+pub struct ThreadPoolConfig {
+    pub workers: usize,
 }
 
 impl Config {
@@ -23,6 +34,9 @@ impl Config {
 
         config
     }
+}
+
+impl ServerConfig {
     pub fn to_string(&self) -> String {
         format!("{}:{}", self.ip, self.port)
     }
@@ -30,6 +44,6 @@ impl Config {
 
 impl fmt::Display for Config {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Config: ip={}, port={}", self.ip, self.port)
+        write!(f, "\nServer: ip={}, port={}\nThreadPool: workers={}", self.server.ip, self.server.port, self.threadpool.workers)
     }
 }
