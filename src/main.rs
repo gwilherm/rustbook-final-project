@@ -15,6 +15,7 @@ use log::info;
 // Internal
 use hello::threadpool::ThreadPool;
 use hello::config::Config;
+use hello::resources::Page;
 
 #[cfg(unix)]
 fn signal_handler_thread(canceller: Canceller) -> Result<(), Box<dyn Error>> {
@@ -32,7 +33,7 @@ fn signal_handler_thread(canceller: Canceller) -> Result<(), Box<dyn Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let config = Config::load("config.toml");
+    let config = Config::load("hello-config.toml");
     
     let (listener, _canceller) = TcpListener::bind(config.server.to_string()).unwrap();
     let pool = ThreadPool::new(config.threadpool.workers); 
@@ -58,12 +59,12 @@ fn handle_connection(mut stream: TcpStream) {
     let sleep = b"GET /sleep HTTP/1.1\r\n";
 
     let (status_line, filename) = if buffer.starts_with(get) {
-        ("HTTP/1.1 200 OK", "hello.html")
+        ("HTTP/1.1 200 OK", Page::get_path(Page::Hello))
     } else if buffer.starts_with(sleep) {
         thread::sleep(Duration::from_secs(5));
-        ("HTTP/1.1 200 OK", "hello.html")
+        ("HTTP/1.1 200 OK", Page::get_path(Page::Hello))
     } else {
-        ("HTTP/1.1 404 NOT FOUND", "404.html")
+        ("HTTP/1.1 404 NOT FOUND", Page::get_path(Page::NotFound))
     };
 
     let contents = fs::read_to_string(filename).unwrap();
