@@ -5,20 +5,19 @@ pub enum Page {
 }
 
 impl Page {
-
-    fn as_str(&self) -> &'static str {
+    pub fn get_path(&self) -> String {
         match self {
-            Page::Hello    => "hello.html",
-            Page::NotFound => "404.html",
+            Page::Hello    => Page::lookup_path("hello.html"),
+            Page::NotFound => Page::lookup_path("404.html"),
         }
     }
 
-    pub fn get_path(p: Page) -> String {
-        if Path::new(p.as_str()).exists() {
-            p.as_str().to_string()
+    pub fn lookup_path(p: &str) -> String {
+        if Path::new(p).exists() {
+            p.to_string()
         }
         else {
-            format!("/usr/share/hello/{}", p.as_str())
+            format!("/usr/share/hello/{}", p)
         }
     }
 }
